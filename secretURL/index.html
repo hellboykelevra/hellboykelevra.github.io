@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    
+    <link id="bootstrap" rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <style id="style">
+ 
+    </style>
+
+</head>
+
+<body id="container">
+    <div class="row">
+        <div class="col-sm-5"></div>
+        <div class="col-sm-2 text-center" >
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <div class="form-group">
+                <input type="password" id="key" class="form-control" maxlength="4" size="4">
+            </div>
+            <button type="button" onclick="decrypt()" class="btn btn-custom btn-lg"> CHECK </button>
+        </div>
+        <div class="col-sm-5"></div>
+    </div>
+</body>
+
+</html>
+
+<script src="js/main.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+    function decrypt() {
+
+        var html =
+            '<div class="facePanel girl"><div class="hayleyface"><span class="hair"><span class="full-fringe"></span></span><span class="ears"></span><header><span class="eyes"></span><span class="nose"></span><span class="blush"></span><span class="mouth"></span></header></div></div>';
+        html = Tea.encrypt(html, '2106');
+        console.log(html);
+
+        var css = '.facePanel{position:relative;border-radius:10px;height:200px;width:100px;padding:20px;margin: 0 auto}.hayleyface header{position:absolute;top:45%;left:50%;width:94px;height:110px;margin-top:calc(-110px / 2);margin-left:calc(-94px / 2);background:#ffe0bc;overflow:hidden}.hayleyface header .eyes{position:absolute;top:37%;left:50%}.hayleyface header .eyes:after,.hayleyface header .eyes:before{content:"";position:absolute;top:0;width:0;height:0;width:10px;border:4px solid #000801;border-radius:10px}.hayleyface header .eyes:before{left:11px}.hayleyface header .eyes:after{right:11px}.hayleyface header .mouth{position:absolute;top:60%;left:50%;width:45px;height:40px;margin-left:calc((-45px + -7px)/ 2);border:5px solid #750000;border-bottom-left-radius:20px;border-bottom-right-radius:20px;height:15px;background-color:#f5f5f5}.hayleyface header .blush{position:absolute;top:55%;left:50%;height:50px;width:94px;margin-left:calc(-94px / 2)}.hayleyface header .blush:after,.hayleyface header .blush:before{-moz-box-shadow:0 0 15px 8px rgba(222,93,131,.6);-webkit-box-shadow:0 0 15px 8px rgba(222,93,131,.6);box-shadow:0 0 15px 8px rgba(222,93,131,.6);content:"";position:absolute;top:0;width:0;height:0}.hayleyface header .blush:before{left:15px}.hayleyface header .blush:after{right:15px}.hayleyface .ears{position:absolute;top:45%;left:50%;width:94px;height:110px;margin-top:calc(-110px / 2);margin-left:calc(-94px / 2)}.hayleyface .ears:after,.hayleyface .ears:before{content:"";position:absolute;top:44%;background:#f1d6b6;height:22px;width:8px;z-index:10}.hayleyface .ears:before{left:-8px;border-radius:16px 8px 8px 16px}.hayleyface .ears:after{right:-8px;border-radius:8px 16px 16px 8px}.hayleyface .hair{position:absolute;background:#a22a05;top:18%;left:50%}.hayleyface header{border-radius:50px 50px 50px 50px}.hayleyface .hair{height:180px;width:calc(114px);margin-left:calc((-114px)/ 2);border-radius:60px 60px 10px 10px}.hayleyface .hair:after,.hayleyface .hair:before{content:"";position:absolute;top:8px;z-index:15;height:calc(180px - 8px);width:42px}.hayleyface .hair:before{border-left:22px solid #c73103;border-radius:96px 5px 5px 50px;left:0}.hayleyface .hair:after{border-right:22px solid #c73103;border-radius:5px 96px 50px 5px;right:0}.hayleyface .hair .right-side-fringe{position:absolute;top:-1%;right:10px;height:94px;width:40px;border-right:#c73103 solid 30px;border-radius:5px 100px 100px 50px;-webkit-transform:rotate(-45deg);-moz-transform:rotate(-45deg);-o-transform:rotate(-45deg);-ms-transform:rotate(-45deg);transform:rotate(-45deg);z-index:20}.hayleyface .hair .full-fringe{position:absolute;top:4%;left:50%;margin-left:calc(-94px / 2);width:94px;height:94px;border-top:#f53d04 solid 40px;border-radius:90px 90px 5px 5px;z-index:20}.hayleyface .hair .both-side-fringe:after,.hayleyface .hair .both-side-fringe:before{content:"";position:absolute;top:-5%;height:59px;width:22px;z-index:20}.hayleyface .hair .both-side-fringe:before{border-left:#ad3a05 solid 16px;border-radius:72px 5px 50px 52px;left:9px;-webkit-transform:rotate(-128deg);-moz-transform:rotate(-128deg);-o-transform:rotate(-128deg);-ms-transform:rotate(-128deg);transform:rotate(-128deg)}.hayleyface .hair .both-side-fringe:after{border-right:#c73103 solid 16px;border-radius:5px 72px 52px 50px;right:9px;-webkit-transform:rotate(128deg);-moz-transform:rotate(128deg);-o-transform:rotate(128deg);-ms-transform:rotate(128deg);transform:rotate(128deg)}.hayleyface .bow{position:absolute;top:45%;left:50%;width:94px;height:110px;margin-top:calc(-110px / 2);margin-left:calc(-94px / 2)}.hayleyface .bow:after,.hayleyface .bow:before{content:"";position:absolute;top:-20px;left:25%;border-left:25px solid #f59f9f;border-top:8px solid transparent;border-bottom:8px solid transparent;height:16px;width:0;border-radius:8px 0 0 8px;z-index:-1}.hayleyface .bow:after{-webkit-transform:rotate(180deg);-moz-transform:rotate(180deg);-o-transform:rotate(180deg);-ms-transform:rotate(180deg);transform:rotate(180deg);margin-left:25px}body{width:600px;margin:30px auto}body h1{font-family:"Helvetica Neue",Helvetica,Arial,"Lucida Grande",sans-serif;font-weight:100;letter-spacing:.5px;font-size:40px;margin:0 auto;text-align:center;color:#666}';
+        css = Tea.encrypt(css, '2106');
+        console.log(css);
+
+        var key = document.getElementById('key').value;
+        var container = document.getElementById('container');
+        var style = document.getElementById('style');
+        document.getElementById('bootstrap').remove();
+
+        style.innerHTML = Tea.decrypt(css, key);
+        container.innerHTML = Tea.decrypt(html, key);
+
+    }
+</script>
