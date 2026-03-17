@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sumo Retro - Batalla de Bolas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --p1-color: #ff0000; /* Rojo */
+            --p2-color: #0066ff; /* Azul */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            transition: background-color 0.5s ease;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Contenedor del juego con efecto CRT */
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            transition: background-color 0.5s ease;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Marcadores UI */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            padding: 30px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .score-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-p1 { color: var(--p1-color); text-shadow: 2px 2px 0px #000, 0 0 10px var(--p1-color); }
+        .score-p2 { color: var(--p2-color); text-shadow: 2px 2px 0px #000, 0 0 10px var(--p2-color); }
+        
+        .score-number {
+            font-size: 48px;
+        }
+
+        .score-label {
+            font-size: 12px;
+        }
+
+        .controls {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 5px;
+            color: #ccc;
+        }
+
+        /* Mensaje de fin de juego / inicio */
+        #message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 20;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        #message-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #ff00ff, -2px -2px 0 #00ffff;
+        }
+
+        #message-subtitle {
+            font-size: 14px;
+            color: #aaa;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Efecto de Pantalla Antigua (CRT) */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 30;
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .crt::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%);
+            z-index: 31;
+            pointer-events: none;
+        }
+
+        /* Efecto de parpadeo ligero de monitor viejo */
+        .flicker {
+            animation: crt-flicker 0.15s infinite;
+        }
+
+        @keyframes crt-flicker {
+            0% { opacity: 0.98; }
+            50% { opacity: 1; }
+            100% { opacity: 0.99; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container" class="crt flicker">
+        <!-- Overlay UI -->
+        <div class="ui-layer">
+            <div class="score-box score-p1">
+                <div class="score-label">JUGADOR 1</div>
+                <div class="score-number" id="score1">0</div>
+                <div class="controls">[W A S D]</div>
+            </div>
+            <div class="score-box score-p2">
+                <div class="score-label">JUGADOR 2</div>
+                <div class="score-number" id="score2">0</div>
+                <div class="controls">[FLECHAS]</div>
+            </div>
+        </div>
+
+        <!-- Mensajes -->
+        <div id="message-overlay">
+            <div id="message-title">SUMO RETRO</div>
+            <div id="message-subtitle">Pulsa ESPACIO para empezar</div>
+        </div>
+
+        <!-- Canvas del Juego -->
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <script>
+        // ==========================================
+        // VARIABLES DE AUDIO (Listas para asignar)
+        // ==========================================
+        const audioMusicaFondo = new Audio('assets/music.mp3'); // Ej: 'assets/music.mp3'
+        audioMusicaFondo.loop = true;
+        audioMusicaFondo.volume = 0.5;
+
+        const audioBote = new Audio('assets/bounce.mp3'); // Ej: 'assets/bounce.wav'
+        const audioCaida = new Audio('assets/fall.mp3'); // Ej: 'assets/fall.wav'
+        const audioVictoria = new Audio(''); // Ej: 'assets/win.wav'
+
+        // Función auxiliar para reproducir sonido sin solapamientos bruscos
+        function playSound(audioObj) {
+            if(audioObj.src && audioObj.src !== window.location.href) {
+                audioObj.currentTime = 0;
+                audioObj.play().catch(e => console.log("Audio no cargado:", e));
+            }
+        }
+
+        // ==========================================
+        // CONFIGURACIÓN DEL JUEGO Y CANVAS
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const score1El = document.getElementById('score1');
+        const score2El = document.getElementById('score2');
+        const msgOverlay = document.getElementById('message-overlay');
+        const msgTitle = document.getElementById('message-title');
+        const msgSubtitle = document.getElementById('message-subtitle');
+
+        // Estado del juego
+        let isPlaying = false;
+        let isGameOver = false;
+        let scores = { p1: 0, p2: 0 };
+        const WIN_SCORE = 3;
+
+        // Efecto de vibración (Shake)
+        let shakeTime = 0;
+        let shakeMagnitude = 0;
+
+        // Sistema de Partículas
+        let particles = [];
+
+        // Entradas de teclado
+        const keys = {
+            w: false, a: false, s: false, d: false,
+            ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+            if (e.key === ' ' && (!isPlaying || isGameOver)) startGame();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+        });
+
+        // ==========================================
+        // CLASES Y ENTIDADES
+        // ==========================================
+        
+        // El Tatami (Plataforma Blanca)
+        const arena = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 220, // Usamos un tatami circular para que el empuje sea más fluido
+            color: '#ffffff'
+        };
+
+        class Player {
+            constructor(x, y, color, controls) {
+                this.startX = x;
+                this.startY = y;
+                this.x = x;
+                this.y = y;
+                this.radius = 25;
+                this.color = color;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 0.8;       // Aceleración
+                this.friction = 0.94;   // Fricción del suelo
+                this.mass = 1;
+                this.controls = controls; // { up, down, left, right }
+                this.isFalling = false;
+                this.scale = 1; // Para la animación de caída
+                this.impactScale = 1; // Para la animación de impacto al chocar
+                this.trail = []; // Para la estela tipo Tron
+            }
+
+            reset() {
+                this.x = this.startX;
+                this.y = this.startY;
+                this.vx = 0;
+                this.vy = 0;
+                this.isFalling = false;
+                this.scale = 1;
+                this.impactScale = 1;
+                this.trail = [];
+            }
+
+            update() {
+                // Actualizar estela de Tron (incluso si cae, para que se retraiga visualmente)
+                if (!this.isFalling && (Math.abs(this.vx) > 0.1 || Math.abs(this.vy) > 0.1)) {
+                    this.trail.push({ x: this.x, y: this.y });
+                    if (this.trail.length > 15) {
+                        this.trail.shift();
+                    }
+                } else if (this.trail.length > 0) {
+                    // Si está quieto o cayendo, la estela se encoge hasta desaparecer
+                    this.trail.shift(); 
+                }
+
+                if (this.isFalling) {
+                    this.scale -= 0.05;
+                    if (this.scale < 0) this.scale = 0;
+                    return;
+                }
+
+                // Recuperar gradualmente el tamaño normal tras un impacto
+                if (this.impactScale > 1) {
+                    this.impactScale -= 0.05;
+                    if (this.impactScale < 1) this.impactScale = 1;
+                }
+
+                // Movimiento
+                if (keys[this.controls.up]) this.vy -= this.speed;
+                if (keys[this.controls.down]) this.vy += this.speed;
+                if (keys[this.controls.left]) this.vx -= this.speed;
+                if (keys[this.controls.right]) this.vx += this.speed;
+
+                // Aplicar fricción y velocidad
+                this.vx *= this.friction;
+                this.vy *= this.friction;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Comprobar si ha caído del tatami
+                const distToCenter = Math.hypot(this.x - arena.x, this.y - arena.y);
+                if (distToCenter > arena.radius) {
+                    this.isFalling = true;
+                    playSound(audioCaida);
+                    handleFall(this);
+                }
+            }
+
+            draw(ctx) {
+                if (this.scale <= 0 && this.trail.length === 0) return;
+
+                ctx.save();
+
+                // --- DIBUJAR ESTELA (TRON) ---
+                if (this.trail.length > 1) {
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    for (let i = 0; i < this.trail.length - 1; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[i].x, this.trail[i].y);
+                        ctx.lineTo(this.trail[i+1].x, this.trail[i+1].y);
+                        
+                        const ratio = i / this.trail.length;
+                        ctx.strokeStyle = this.color;
+                        ctx.lineWidth = ratio * 12; // Grosor adaptativo según distancia
+                        ctx.globalAlpha = ratio * 0.6; // Opacidad difuminada en la cola
+                        ctx.stroke();
+                    }
+                    
+                    // Conectar el último punto de la estela con la posición actual del jugador
+                    if (!this.isFalling) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[this.trail.length - 1].x, this.trail[this.trail.length - 1].y);
+                        ctx.lineTo(this.x, this.y);
+                        ctx.strokeStyle = this.color;
+                        ctx.lineWidth = 12;
+                        ctx.globalAlpha = 0.6;
+                        ctx.stroke();
+                    }
+                }
+                
+                ctx.globalAlpha = 1.0; // Restaurar opacidad al 100% para la bola principal
+
+                // --- DIBUJAR BOLA ---
+                if (this.scale > 0) {
+                    ctx.translate(this.x, this.y);
+                    
+                    // Aplicar tanto la escala de caída como el aumento temporal del impacto
+                    const currentScale = this.scale * this.impactScale;
+                    ctx.scale(currentScale, currentScale);
+
+                    // Sombra
+                    ctx.beginPath();
+                    ctx.arc(0, 5, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.fill();
+
+                    // Bola
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                    
+                    // Brillo (estilo retro 3D falso)
+                    ctx.beginPath();
+                    ctx.arc(-8, -8, this.radius * 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Clase Partícula
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                // Velocidad explosiva en ángulos aleatorios
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                // Tamaño pixelado
+                this.size = Math.floor(Math.random() * 4) + 3; // Cuadrados de 3 a 6 px
+                this.life = 1.0; // Opacidad
+                this.decay = Math.random() * 0.05 + 0.02; // Velocidad con la que desaparecen
+                this.color = '#ffee00'; // Amarillo pixel
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+            }
+
+            draw(ctx) {
+                if (this.life <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        function createParticles(x, y, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y));
+            }
+        }
+
+        let p1 = new Player(canvas.width / 2 - 100, canvas.height / 2, '#ff0000', { up: 'w', down: 's', left: 'a', right: 'd' });
+        let p2 = new Player(canvas.width / 2 + 100, canvas.height / 2, '#0066ff', { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' });
+
+        // ==========================================
+        // LÓGICA PRINCIPAL DEL JUEGO
+        // ==========================================
+
+        function startGame() {
+            if (audioMusicaFondo.src) audioMusicaFondo.play().catch(()=>{});
+            scores = { p1: 0, p2: 0 };
+            document.documentElement.style.setProperty('--bg-color', '#050505'); // Resetear fondo al inicio
+            particles = []; // Limpiar partículas antiguas
+            updateScores();
+            p1.reset();
+            p2.reset();
+            isPlaying = true;
+            isGameOver = false;
+            msgOverlay.style.display = 'none';
+        }
+
+        function handleFall(fallenPlayer) {
+            if (fallenPlayer === p1) {
+                scores.p2++;
+                document.documentElement.style.setProperty('--bg-color', '#001a4d'); // Azul oscuro para J2
+            } else {
+                scores.p1++;
+                document.documentElement.style.setProperty('--bg-color', '#4d0000'); // Rojo oscuro para J1
+            }
+
+            updateScores();
+
+            if (scores.p1 >= WIN_SCORE || scores.p2 >= WIN_SCORE) {
+                endGame(scores.p1 >= WIN_SCORE ? 1 : 2);
+            } else {
+                // Pausar brevemente y resetear ronda
+                setTimeout(() => {
+                    if (!isGameOver) {
+                        p1.reset();
+                        p2.reset();
+                    }
+                }, 1000);
+            }
+        }
+
+        function updateScores() {
+            score1El.innerText = scores.p1;
+            score2El.innerText = scores.p2;
+        }
+
+        function endGame(winnerIndex) {
+            isGameOver = true;
+            isPlaying = false;
+            playSound(audioVictoria);
+            
+            msgTitle.style.color = winnerIndex === 1 ? 'var(--p1-color)' : 'var(--p2-color)';
+            msgTitle.innerText = `¡JUGADOR ${winnerIndex} GANA!`;
+            msgSubtitle.innerText = "Pulsa ESPACIO para revancha";
+            msgOverlay.style.display = 'flex';
+        }
+
+        function triggerShake(magnitude) {
+            shakeTime = 10;
+            shakeMagnitude = magnitude;
+        }
+
+        // Resolución de colisiones entre bolas
+        function checkCollisions() {
+            if (p1.isFalling || p2.isFalling) return;
+
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const distance = Math.hypot(dx, dy);
+            const minDist = p1.radius + p2.radius;
+
+            if (distance < minDist) {
+                // Separación para evitar que se queden pegados (Penetration Resolution)
+                const overlap = minDist - distance;
+                const nx = dx / distance;
+                const ny = dy / distance;
+                
+                p1.x -= nx * overlap * 0.5;
+                p2.x += nx * overlap * 0.5;
+
+                // Cálculo de impacto elástico
+                const kx = p1.vx - p2.vx;
+                const ky = p1.vy - p2.vy;
+                const force = 2.0 * (nx * kx + ny * ky) / (p1.mass + p2.mass);
+                
+                const bounciness = 1.2; // Restitución (mayor a 1 = empuje extra)
+                
+                p1.vx -= force * p2.mass * bounciness * nx;
+                p1.vy -= force * p2.mass * bounciness * ny;
+                p2.vx += force * p1.mass * bounciness * nx;
+                p2.vy += force * p1.mass * bounciness * ny;
+
+                const impactForce = Math.abs(force);
+
+                // Hacer que las bolas crezcan temporalmente (hasta un 40% más grandes)
+                if (impactForce > 0.5) {
+                    const bumpScale = 1 + Math.min(impactForce * 0.15, 0.4);
+                    p1.impactScale = Math.max(p1.impactScale, bumpScale);
+                    p2.impactScale = Math.max(p2.impactScale, bumpScale);
+                }
+
+                // Si el impacto es fuerte, vibra la plataforma y crea partículas
+                if (impactForce > 1.5) { // Umbral ligeramente rebajado para más efectos
+                    triggerShake(impactForce);
+                    playSound(audioBote);
+                    
+                    // Calcular el punto medio para generar las partículas
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    
+                    // Número de partículas escalado según la fuerza del choque (máximo 30)
+                    const particleCount = Math.min(Math.floor(impactForce * 8), 30);
+                    createParticles(midX, midY, particleCount);
+                }
+            }
+        }
+
+        // ==========================================
+        // BUCLE DE RENDERIZADO (GAME LOOP)
+        // ==========================================
+        function drawArena() {
+            // Sombra del tatami
+            ctx.beginPath();
+            ctx.arc(arena.x, arena.y + 10, arena.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.fill();
+
+            // Tatami principal
+            ctx.beginPath();
+            ctx.arc(arena.x, arena.y, arena.radius, 0, Math.PI * 2);
+            ctx.fillStyle = arena.color;
+            ctx.fill();
+
+            // Borde interior del tatami (decorativo retro)
+            ctx.beginPath();
+            ctx.arc(arena.x, arena.y, arena.radius - 10, 0, Math.PI * 2);
+            ctx.strokeStyle = '#dddddd';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
+            // Centro
+            ctx.beginPath();
+            ctx.arc(arena.x, arena.y, 40, 0, Math.PI * 2);
+            ctx.strokeStyle = '#eeeeee';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function gameLoop() {
+            // Limpiar Canvas (lo hacemos transparente para ver el fondo animado del contenedor)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+
+            // Aplicar Vibración de Cámara
+            if (shakeTime > 0) {
+                const dx = (Math.random() - 0.5) * shakeMagnitude * 2;
+                const dy = (Math.random() - 0.5) * shakeMagnitude * 2;
+                ctx.translate(dx, dy);
+                shakeTime--;
+                shakeMagnitude *= 0.9; // Decaimiento suave
+            }
+
+            drawArena();
+
+            if (isPlaying) {
+                p1.update();
+                p2.update();
+                checkCollisions();
+            }
+
+            // Dibujar jugadores
+            p1.draw(ctx);
+            p2.draw(ctx);
+
+            // Actualizar y dibujar partículas
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw(ctx);
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            ctx.restore();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Iniciar el bucle de renderizado
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>
